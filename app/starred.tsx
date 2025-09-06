@@ -4,18 +4,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
-import {
-  Alert,
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Modal,
-} from "react-native"
+import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal } from "react-native"
 
 const PeepLogo = () => (
   <View style={styles.logoContainer}>
@@ -23,16 +12,14 @@ const PeepLogo = () => (
   </View>
 )
 
-const RouteCard = ({
+const StarredRouteCard = ({
   route,
   onExpand,
   onToggleStar,
-  isStarred,
 }: {
   route: any
   onExpand: () => void
   onToggleStar: () => void
-  isStarred: boolean
 }) => (
   <TouchableOpacity onPress={onExpand} style={styles.routeCard}>
     <View style={styles.routeHeader}>
@@ -42,7 +29,7 @@ const RouteCard = ({
           <Text style={styles.fareText}>₱{route.fare}</Text>
         </View>
         <TouchableOpacity onPress={onToggleStar} style={styles.starButton}>
-          <Ionicons name={isStarred ? "star" : "star-outline"} size={20} color={isStarred ? "#F59E0B" : "#9CA3AF"} />
+          <Ionicons name="star" size={20} color="#F59E0B" />
         </TouchableOpacity>
       </View>
     </View>
@@ -55,7 +42,7 @@ const RouteCard = ({
     </View>
 
     <View style={styles.stepsContainer}>
-      {route.steps.map((step: string, index: number) => (
+      {route.steps.slice(0, 2).map((step: string, index: number) => (
         <View key={index} style={styles.stepItem}>
           <View style={styles.stepNumber}>
             <Text style={styles.stepNumberText}>{index + 1}</Text>
@@ -63,6 +50,7 @@ const RouteCard = ({
           <Text style={styles.stepText}>{step}</Text>
         </View>
       ))}
+      {route.steps.length > 2 && <Text style={styles.moreSteps}>+{route.steps.length - 2} more steps</Text>}
     </View>
   </TouchableOpacity>
 )
@@ -72,13 +60,11 @@ const RouteDetailModal = ({
   visible,
   onClose,
   onToggleStar,
-  isStarred,
 }: {
   route: any
   visible: boolean
   onClose: () => void
   onToggleStar: () => void
-  isStarred: boolean
 }) => (
   <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
     <SafeAreaView style={styles.modalContainer}>
@@ -88,12 +74,11 @@ const RouteDetailModal = ({
         </TouchableOpacity>
         <Text style={styles.modalTitle}>{route?.routeName}</Text>
         <TouchableOpacity onPress={onToggleStar} style={styles.starButton}>
-          <Ionicons name={isStarred ? "star" : "star-outline"} size={24} color={isStarred ? "#F59E0B" : "#9CA3AF"} />
+          <Ionicons name="star" size={24} color="#F59E0B" />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.modalContent}>
-        {/* Detailed Map View */}
         <View style={styles.detailMapContainer}>
           <View style={styles.detailMapPlaceholder}>
             <Ionicons name="map" size={64} color="#9CA3AF" />
@@ -102,7 +87,6 @@ const RouteDetailModal = ({
           </View>
         </View>
 
-        {/* Route Information */}
         <View style={styles.routeDetailCard}>
           <View style={styles.routeDetailHeader}>
             <View style={styles.fareContainer}>
@@ -130,63 +114,29 @@ const RouteDetailModal = ({
   </Modal>
 )
 
-export default function HomeScreen() {
-  const [fromLocation, setFromLocation] = useState("")
-  const [toLocation, setToLocation] = useState("")
-  const [routes, setRoutes] = useState<any[]>([])
-  const [isSearching, setIsSearching] = useState(false)
+export default function StarredScreen() {
   const [selectedRoute, setSelectedRoute] = useState<any>(null)
   const [showRouteDetail, setShowRouteDetail] = useState(false)
-  const [starredRoutes, setStarredRoutes] = useState<number[]>([])
 
-  const handleSearch = async () => {
-    if (!fromLocation || !toLocation) {
-      Alert.alert("Missing Information", "Please enter both pickup and destination locations.")
-      return
-    }
+  // Mock starred routes data
+  const [starredRoutes, setStarredRoutes] = useState([
+    {
+      id: 1,
+      routeName: "Matina Crossing - Roxas Ave",
+      fare: 15,
+      totalTime: "20 mins",
+      steps: [
+        "Walk 2 minutes to Matina Crossing Terminal",
+        'Board jeepney "Matina Crossing - Roxas Ave"',
+        "Ride for 15 minutes (8 stops)",
+        "Get off at Roxas Ave near SM City Davao",
+        "Walk 3 minutes to your destination",
+      ],
+    },
+  ])
 
-    setIsSearching(true)
-    setTimeout(() => {
-      setRoutes([
-        {
-          id: 1,
-          routeName: "Matina Crossing - Roxas Ave",
-          walkToStop: "2 min walk to Matina Crossing Terminal",
-          rideTime: "15 mins",
-          walkFromStop: "3 min walk to destination",
-          fare: 15,
-          totalTime: "20 mins",
-          steps: [
-            "Walk 2 minutes to Matina Crossing Terminal",
-            'Board jeepney "Matina Crossing - Roxas Ave"',
-            "Ride for 15 minutes (8 stops)",
-            "Get off at Roxas Ave near SM City Davao",
-            "Walk 3 minutes to your destination",
-          ],
-        },
-        {
-          id: 2,
-          routeName: "Bankerohan - Buhangin",
-          walkToStop: "5 min walk to Bankerohan Terminal",
-          rideTime: "25 mins",
-          walkFromStop: "2 min walk to destination",
-          fare: 18,
-          totalTime: "32 mins",
-          steps: [
-            "Walk 5 minutes to Bankerohan Terminal",
-            'Board jeepney "Bankerohan - Buhangin"',
-            "Ride for 25 minutes (12 stops)",
-            "Get off at Buhangin Public Market",
-            "Walk 2 minutes to your destination",
-          ],
-        },
-      ])
-      setIsSearching(false)
-    }, 1500)
-  }
-
-  const toggleStar = (routeId: number) => {
-    setStarredRoutes((prev) => (prev.includes(routeId) ? prev.filter((id) => id !== routeId) : [...prev, routeId]))
+  const removeFromStarred = (routeId: number) => {
+    setStarredRoutes((prev) => prev.filter((route) => route.id !== routeId))
   }
 
   const openRouteDetail = (route: any) => {
@@ -208,81 +158,28 @@ export default function HomeScreen() {
           <PeepLogo />
         </LinearGradient>
 
-        {/* Map Placeholder */}
-        <View style={styles.mapSection}>
-          <View style={styles.mapPlaceholder}>
-            <Ionicons name="map-outline" size={48} color="#9CA3AF" />
-            <Text style={styles.mapText}>Interactive Map</Text>
-            <Text style={styles.mapSubtext}>Davao City Routes</Text>
-          </View>
-        </View>
+        {/* Starred Routes Section */}
+        <View style={styles.starredSection}>
+          <Text style={styles.sectionTitle}>Your Starred Routes</Text>
 
-        {/* Journey Planner */}
-        <View style={styles.plannerSection}>
-          <View style={styles.plannerCard}>
-            <Text style={styles.plannerTitle}>Plan your journey</Text>
-
-            <View style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="location-outline" size={20} color="#f59e0b" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Where from?"
-                  placeholderTextColor="#9CA3AF"
-                  value={fromLocation}
-                  onChangeText={setFromLocation}
-                />
-              </View>
-
-              <View style={styles.inputWrapper}>
-                <Ionicons name="navigate-outline" size={20} color="#ec4899" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Where to?"
-                  placeholderTextColor="#9CA3AF"
-                  value={toLocation}
-                  onChangeText={setToLocation}
-                />
-              </View>
-
-              <TouchableOpacity
-                onPress={handleSearch}
-                disabled={!fromLocation || !toLocation || isSearching}
-                style={[
-                  styles.searchButton,
-                  (!fromLocation || !toLocation || isSearching) && styles.searchButtonDisabled,
-                ]}
-              >
-                <LinearGradient
-                  colors={["#f59e0b", "#ea580c", "#ec4899"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.searchButtonGradient}
-                >
-                  <Text style={styles.searchButtonText}>{isSearching ? "Finding Routes..." : "See Routes"}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Routes Results */}
-        {routes.length > 0 && (
-          <View style={styles.routesSection}>
-            <Text style={styles.routesTitle}>Available Routes</Text>
-            {routes.map((route) => (
-              <RouteCard
+          {starredRoutes.length > 0 ? (
+            starredRoutes.map((route) => (
+              <StarredRouteCard
                 key={route.id}
                 route={route}
                 onExpand={() => openRouteDetail(route)}
-                onToggleStar={() => toggleStar(route.id)}
-                isStarred={starredRoutes.includes(route.id)}
+                onToggleStar={() => removeFromStarred(route.id)}
               />
-            ))}
-          </View>
-        )}
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="star-outline" size={64} color="#D1D5DB" />
+              <Text style={styles.emptyTitle}>No Starred Routes</Text>
+              <Text style={styles.emptySubtitle}>Star your favorite routes from the Routes tab to see them here</Text>
+            </View>
+          )}
+        </View>
 
-        {/* Bottom spacing for navigation */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
@@ -291,8 +188,7 @@ export default function HomeScreen() {
         route={selectedRoute}
         visible={showRouteDetail}
         onClose={() => setShowRouteDetail(false)}
-        onToggleStar={() => selectedRoute && toggleStar(selectedRoute.id)}
-        isStarred={selectedRoute ? starredRoutes.includes(selectedRoute.id) : false}
+        onToggleStar={() => selectedRoute && removeFromStarred(selectedRoute.id)}
       />
     </SafeAreaView>
   )
@@ -321,94 +217,16 @@ const styles = StyleSheet.create({
     width: 200,
     height: 90,
   },
-  mapSection: {
+  starredSection: {
     paddingHorizontal: 16,
     paddingVertical: 24,
   },
-  mapPlaceholder: {
-    height: 200,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mapText: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 8,
-  },
-  mapSubtext: {
-    fontSize: 12,
-    color: "#9CA3AF",
-  },
-  plannerSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  plannerCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  plannerTitle: {
+  sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
     color: "#1F2937",
     textAlign: "center",
-    marginBottom: 16,
-  },
-  inputContainer: {
-    gap: 16,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 12,
-    height: 48,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#1F2937",
-  },
-  searchButton: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  searchButtonDisabled: {
-    opacity: 0.5,
-  },
-  searchButtonGradient: {
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  searchButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  routesSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  routesTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F2937",
-    textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   routeCard: {
     backgroundColor: "#FFFFFF",
@@ -449,6 +267,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#D97706",
   },
+  starButton: {
+    padding: 4,
+  },
   routeInfo: {
     marginBottom: 16,
   },
@@ -487,6 +308,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#374151",
     flex: 1,
+    lineHeight: 20,
+  },
+  moreSteps: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontStyle: "italic",
+    marginLeft: 36,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 48,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginTop: 8,
+    paddingHorizontal: 32,
     lineHeight: 20,
   },
   bottomSpacing: {
@@ -583,8 +428,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
-  },
-  starButton: {
-    padding: 4,
   },
 })
