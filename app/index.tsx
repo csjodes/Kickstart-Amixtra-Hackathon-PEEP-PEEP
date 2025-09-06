@@ -217,17 +217,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
+    paddingHorizontal: 17,
+    paddingVertical: 10,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
   logoContainer: {
     alignItems: "center",
+    marginTop: 16,
+    marginBottom: 6,
   },
   logoImage: {
     width: 200,
-    height: 80,
+    height: 90,
   },
   mapSection: {
     paddingHorizontal: 16,
