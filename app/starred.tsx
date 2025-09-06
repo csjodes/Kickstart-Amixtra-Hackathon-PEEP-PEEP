@@ -150,18 +150,18 @@ export default function StarredScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header with Logo */}
         <LinearGradient
-          colors={["#f59e0b", "#ea580c", "#ec4899", "#d946ef"]}
+          colors={["#FED7AA", "#FDBA74", "#FB923C", "#F97316"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
           <PeepLogo />
+          <Text style={styles.headerTitle}>Starred Routes</Text>
+          <Text style={styles.headerSubtitle}>Your favorite jeepney routes</Text>
         </LinearGradient>
 
         {/* Starred Routes Section */}
         <View style={styles.starredSection}>
-          <Text style={styles.sectionTitle}>Your Starred Routes</Text>
-
           {starredRoutes.length > 0 ? (
             starredRoutes.map((route) => (
               <StarredRouteCard
@@ -203,19 +203,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 17,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    alignItems: "center",
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 6,
+    marginBottom: 12,
   },
   logoImage: {
     width: 200,
     height: 90,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    textAlign: "center",
+    opacity: 0.9,
   },
   starredSection: {
     paddingHorizontal: 16,
@@ -336,31 +349,6 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100,
-  },
-  bottomNav: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 12,
-    paddingBottom: 24,
-  },
-  navItem: {
-    alignItems: "center",
-    gap: 4,
-  },
-  navText: {
-    fontSize: 12,
-    color: "#374151",
-  },
-  navTextActive: {
-    color: "#F59E0B",
-    fontWeight: "600",
   },
   modalContainer: {
     flex: 1,

@@ -3,7 +3,8 @@
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { StatusBar } from "expo-status-bar"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import * as Location from "expo-location"
 import {
   Alert,
   Image,
@@ -14,7 +15,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Modal,
 } from "react-native"
 
 const PeepLogo = () => (
@@ -23,197 +23,99 @@ const PeepLogo = () => (
   </View>
 )
 
-const RouteCard = ({
-  route,
-  onExpand,
-  onToggleStar,
-  isStarred,
-}: {
-  route: any
-  onExpand: () => void
-  onToggleStar: () => void
-  isStarred: boolean
-}) => (
-  <TouchableOpacity onPress={onExpand} style={styles.routeCard}>
-    <View style={styles.routeHeader}>
-      <Text style={styles.routeName}>{route.routeName}</Text>
-      <View style={styles.routeHeaderRight}>
-        <View style={styles.fareContainer}>
-          <Text style={styles.fareText}>₱{route.fare}</Text>
-        </View>
-        <TouchableOpacity onPress={onToggleStar} style={styles.starButton}>
-          <Ionicons name={isStarred ? "star" : "star-outline"} size={20} color={isStarred ? "#F59E0B" : "#9CA3AF"} />
-        </TouchableOpacity>
-      </View>
-    </View>
-
-    <View style={styles.routeInfo}>
-      <View style={styles.timeInfo}>
-        <Ionicons name="time-outline" size={16} color="#6B7280" />
-        <Text style={styles.timeText}>{route.totalTime}</Text>
-      </View>
-    </View>
-
-    <View style={styles.stepsContainer}>
-      {route.steps.map((step: string, index: number) => (
-        <View key={index} style={styles.stepItem}>
-          <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>{index + 1}</Text>
-          </View>
-          <Text style={styles.stepText}>{step}</Text>
-        </View>
-      ))}
-    </View>
-  </TouchableOpacity>
-)
-
-const RouteDetailModal = ({
-  route,
-  visible,
-  onClose,
-  onToggleStar,
-  isStarred,
-}: {
-  route: any
-  visible: boolean
-  onClose: () => void
-  onToggleStar: () => void
-  isStarred: boolean
-}) => (
-  <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-    <SafeAreaView style={styles.modalContainer}>
-      <View style={styles.modalHeader}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color="#374151" />
-        </TouchableOpacity>
-        <Text style={styles.modalTitle}>{route?.routeName}</Text>
-        <TouchableOpacity onPress={onToggleStar} style={styles.starButton}>
-          <Ionicons name={isStarred ? "star" : "star-outline"} size={24} color={isStarred ? "#F59E0B" : "#9CA3AF"} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.modalContent}>
-        {/* Detailed Map View */}
-        <View style={styles.detailMapContainer}>
-          <View style={styles.detailMapPlaceholder}>
-            <Ionicons name="map" size={64} color="#9CA3AF" />
-            <Text style={styles.detailMapText}>Detailed Route Map</Text>
-            <Text style={styles.detailMapSubtext}>Interactive route visualization</Text>
-          </View>
-        </View>
-
-        {/* Route Information */}
-        <View style={styles.routeDetailCard}>
-          <View style={styles.routeDetailHeader}>
-            <View style={styles.fareContainer}>
-              <Text style={styles.fareText}>₱{route?.fare}</Text>
-            </View>
-            <View style={styles.timeInfo}>
-              <Ionicons name="time-outline" size={16} color="#6B7280" />
-              <Text style={styles.timeText}>{route?.totalTime}</Text>
-            </View>
-          </View>
-
-          <View style={styles.stepsContainer}>
-            {route?.steps.map((step: string, index: number) => (
-              <View key={index} style={styles.stepItem}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>{index + 1}</Text>
-                </View>
-                <Text style={styles.stepText}>{step}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  </Modal>
-)
-
 export default function HomeScreen() {
   const [fromLocation, setFromLocation] = useState("")
   const [toLocation, setToLocation] = useState("")
-  const [routes, setRoutes] = useState<any[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [selectedRoute, setSelectedRoute] = useState<any>(null)
-  const [showRouteDetail, setShowRouteDetail] = useState(false)
-  const [starredRoutes, setStarredRoutes] = useState<number[]>([])
+  const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null)
+  const [locationPermission, setLocationPermission] = useState<boolean>(false)
 
-  const handleSearch = async () => {
+  useEffect(() => {
+    requestLocationPermission()
+  }, [])
+
+  const requestLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      if (status === "granted") {
+        setLocationPermission(true)
+        const location = await Location.getCurrentPositionAsync({})
+        setCurrentLocation(location)
+        const address = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        })
+        if (address[0]) {
+          setFromLocation(`${address[0].street || ""} ${address[0].district || ""}, Davao City`)
+        }
+      } else {
+        Alert.alert("Location Permission", "Please enable location services to use GPS features.")
+      }
+    } catch (error) {
+      console.error("Error requesting location permission:", error)
+    }
+  }
+
+  const handleSearch = () => {
     if (!fromLocation || !toLocation) {
       Alert.alert("Missing Information", "Please enter both pickup and destination locations.")
       return
     }
-
-    setIsSearching(true)
-    setTimeout(() => {
-      setRoutes([
-        {
-          id: 1,
-          routeName: "Matina Crossing - Roxas Ave",
-          walkToStop: "2 min walk to Matina Crossing Terminal",
-          rideTime: "15 mins",
-          walkFromStop: "3 min walk to destination",
-          fare: 15,
-          totalTime: "20 mins",
-          steps: [
-            "Walk 2 minutes to Matina Crossing Terminal",
-            'Board jeepney "Matina Crossing - Roxas Ave"',
-            "Ride for 15 minutes (8 stops)",
-            "Get off at Roxas Ave near SM City Davao",
-            "Walk 3 minutes to your destination",
-          ],
-        },
-        {
-          id: 2,
-          routeName: "Bankerohan - Buhangin",
-          walkToStop: "5 min walk to Bankerohan Terminal",
-          rideTime: "25 mins",
-          walkFromStop: "2 min walk to destination",
-          fare: 18,
-          totalTime: "32 mins",
-          steps: [
-            "Walk 5 minutes to Bankerohan Terminal",
-            'Board jeepney "Bankerohan - Buhangin"',
-            "Ride for 25 minutes (12 stops)",
-            "Get off at Buhangin Public Market",
-            "Walk 2 minutes to your destination",
-          ],
-        },
-      ])
-      setIsSearching(false)
-    }, 1500)
-  }
-
-  const toggleStar = (routeId: number) => {
-    setStarredRoutes((prev) => (prev.includes(routeId) ? prev.filter((id) => id !== routeId) : [...prev, routeId]))
-  }
-
-  const openRouteDetail = (route: any) => {
-    setSelectedRoute(route)
-    setShowRouteDetail(true)
+    // Navigate to routes page with search parameters
+    Alert.alert("Search", `Searching routes from ${fromLocation} to ${toLocation}`)
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header with Logo */}
+        {/* Header with Logo - Softer gradient */}
         <LinearGradient
-          colors={["#f59e0b", "#ea580c", "#ec4899", "#d946ef"]}
+          colors={["#FED7AA", "#FDBA74", "#FB923C", "#F97316"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
           <PeepLogo />
+          <Text style={styles.welcomeText}>Welcome to PEEP PEEP</Text>
+          <Text style={styles.subtitleText}>Your Davao City Jeepney Guide</Text>
         </LinearGradient>
 
-        {/* Map Placeholder */}
+        {/* Interactive Map Section */}
         <View style={styles.mapSection}>
           <View style={styles.mapPlaceholder}>
-            <Ionicons name="map-outline" size={48} color="#9CA3AF" />
+            <Ionicons name="location" size={48} color="#E85A4F" />
             <Text style={styles.mapText}>Interactive Map</Text>
-            <Text style={styles.mapSubtext}>Davao City Routes</Text>
+            <Text style={styles.mapSubtext}>
+              {locationPermission ? "GPS Enabled - Davao City" : "Enable GPS for better experience"}
+            </Text>
+            {currentLocation && (
+              <Text style={styles.coordinatesText}>
+                {currentLocation.coords.latitude.toFixed(4)}, {currentLocation.coords.longitude.toFixed(4)}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity style={styles.quickActionCard}>
+              <Ionicons name="map-outline" size={32} color="#E85A4F" />
+              <Text style={styles.quickActionText}>View All Routes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickActionCard}>
+              <Ionicons name="star-outline" size={32} color="#E85A4F" />
+              <Text style={styles.quickActionText}>Saved Routes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickActionCard}>
+              <Ionicons name="cash-outline" size={32} color="#E85A4F" />
+              <Text style={styles.quickActionText}>Fare Calculator</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickActionCard}>
+              <Ionicons name="chatbubble-outline" size={32} color="#E85A4F" />
+              <Text style={styles.quickActionText}>Ask AI Assistant</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -224,7 +126,7 @@ export default function HomeScreen() {
 
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
-                <Ionicons name="location-outline" size={20} color="#f59e0b" style={styles.inputIcon} />
+                <Ionicons name="location-outline" size={20} color="#E85A4F" style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Where from?"
@@ -232,10 +134,15 @@ export default function HomeScreen() {
                   value={fromLocation}
                   onChangeText={setFromLocation}
                 />
+                {locationPermission && (
+                  <TouchableOpacity onPress={requestLocationPermission}>
+                    <Ionicons name="locate" size={20} color="#E85A4F" />
+                  </TouchableOpacity>
+                )}
               </View>
 
               <View style={styles.inputWrapper}>
-                <Ionicons name="navigate-outline" size={20} color="#ec4899" style={styles.inputIcon} />
+                <Ionicons name="navigate-outline" size={20} color="#D946EF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Where to?"
@@ -247,53 +154,43 @@ export default function HomeScreen() {
 
               <TouchableOpacity
                 onPress={handleSearch}
-                disabled={!fromLocation || !toLocation || isSearching}
-                style={[
-                  styles.searchButton,
-                  (!fromLocation || !toLocation || isSearching) && styles.searchButtonDisabled,
-                ]}
+                disabled={!fromLocation || !toLocation}
+                style={[styles.searchButton, (!fromLocation || !toLocation) && styles.searchButtonDisabled]}
               >
                 <LinearGradient
-                  colors={["#f59e0b", "#ea580c", "#ec4899"]}
+                  colors={["#FED7AA", "#FB923C", "#E85A4F"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.searchButtonGradient}
                 >
-                  <Text style={styles.searchButtonText}>{isSearching ? "Finding Routes..." : "See Routes"}</Text>
+                  <Text style={styles.searchButtonText}>Find Routes</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Routes Results */}
-        {routes.length > 0 && (
-          <View style={styles.routesSection}>
-            <Text style={styles.routesTitle}>Available Routes</Text>
-            {routes.map((route) => (
-              <RouteCard
-                key={route.id}
-                route={route}
-                onExpand={() => openRouteDetail(route)}
-                onToggleStar={() => toggleStar(route.id)}
-                isStarred={starredRoutes.includes(route.id)}
-              />
-            ))}
-          </View>
-        )}
+        {/* Popular Routes */}
+        <View style={styles.popularSection}>
+          <Text style={styles.sectionTitle}>Popular Routes</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.popularScroll}>
+            <TouchableOpacity style={styles.popularCard}>
+              <Text style={styles.popularRoute}>Matina - SM City</Text>
+              <Text style={styles.popularFare}>₱15</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.popularCard}>
+              <Text style={styles.popularRoute}>Bankerohan - Buhangin</Text>
+              <Text style={styles.popularFare}>₱18</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.popularCard}>
+              <Text style={styles.popularRoute}>Toril - Downtown</Text>
+              <Text style={styles.popularFare}>₱20</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
 
-        {/* Bottom spacing for navigation */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
-
-      {/* Route Detail Modal */}
-      <RouteDetailModal
-        route={selectedRoute}
-        visible={showRouteDetail}
-        onClose={() => setShowRouteDetail(false)}
-        onToggleStar={() => selectedRoute && toggleStar(selectedRoute.id)}
-        isStarred={selectedRoute ? starredRoutes.includes(selectedRoute.id) : false}
-      />
     </SafeAreaView>
   )
 }
@@ -308,18 +205,31 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 17,
-    paddingVertical: 10,
+    paddingVertical: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    alignItems: "center",
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 6,
+    marginBottom: 12,
   },
   logoImage: {
     width: 200,
     height: 90,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    textAlign: "center",
+    opacity: 0.9,
   },
   mapSection: {
     paddingHorizontal: 16,
@@ -331,22 +241,67 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
   },
   mapText: {
-    fontSize: 14,
-    color: "#6B7280",
+    fontSize: 16,
+    color: "#374151",
     marginTop: 8,
+    fontWeight: "600",
   },
   mapSubtext: {
     fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  coordinatesText: {
+    fontSize: 10,
     color: "#9CA3AF",
+    marginTop: 4,
+  },
+  quickActionsSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 16,
+  },
+  quickActionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  quickActionCard: {
+    width: "48%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: "#374151",
+    textAlign: "center",
+    marginTop: 8,
+    fontWeight: "500",
   },
   plannerSection: {
     paddingHorizontal: 16,
     paddingBottom: 24,
   },
   plannerCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     borderRadius: 16,
     padding: 24,
     shadowColor: "#000",
@@ -399,192 +354,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  routesSection: {
+  popularSection: {
     paddingHorizontal: 16,
     paddingBottom: 24,
   },
-  routesTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F2937",
-    textAlign: "center",
-    marginBottom: 16,
+  popularScroll: {
+    flexDirection: "row",
   },
-  routeCard: {
+  popularCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginRight: 12,
+    minWidth: 140,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  routeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  routeName: {
-    fontSize: 16,
+  popularRoute: {
+    fontSize: 14,
     fontWeight: "600",
     color: "#1F2937",
-    flex: 1,
+    marginBottom: 4,
   },
-  routeHeaderRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  fareContainer: {
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  fareText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#D97706",
-  },
-  routeInfo: {
-    marginBottom: 16,
-  },
-  timeInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  timeText: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginLeft: 4,
-  },
-  stepsContainer: {
-    gap: 12,
-  },
-  stepItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#F59E0B",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-    marginTop: 2,
-  },
-  stepNumberText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  stepText: {
-    fontSize: 14,
-    color: "#374151",
-    flex: 1,
-    lineHeight: 20,
+  popularFare: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#E85A4F",
   },
   bottomSpacing: {
     height: 100,
-  },
-  bottomNav: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 12,
-    paddingBottom: 24,
-  },
-  navItem: {
-    alignItems: "center",
-    gap: 4,
-  },
-  navText: {
-    fontSize: 12,
-    color: "#374151",
-  },
-  navTextActive: {
-    color: "#F59E0B",
-    fontWeight: "600",
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#FEF7ED",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-  },
-  closeButton: {
-    padding: 8,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F2937",
-    flex: 1,
-    textAlign: "center",
-  },
-  modalContent: {
-    flex: 1,
-  },
-  detailMapContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  detailMapPlaceholder: {
-    height: 300,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  detailMapText: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginTop: 12,
-    fontWeight: "500",
-  },
-  detailMapSubtext: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginTop: 4,
-  },
-  routeDetailCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 16,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  routeDetailHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  starButton: {
-    padding: 4,
   },
 })
