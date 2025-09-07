@@ -14,8 +14,8 @@ export default function RootLayout() {
           paddingTop: 5,
           height: 60,
         },
-        tabBarActiveTintColor: "#E85A4F",
-        tabBarInactiveTintColor: "#8B8B8B",
+        tabBarActiveTintColor: "#FF6B35",
+        tabBarInactiveTintColor: "#666",
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "600",
@@ -24,13 +24,6 @@ export default function RootLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="routes"
         options={{
           title: "Routes",
           tabBarIcon: ({ color, size }) => <Ionicons name="map" size={size} color={color} />,

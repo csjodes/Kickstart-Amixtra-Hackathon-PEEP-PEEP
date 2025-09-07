@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import {
   Alert,
   Image,
+  Modal,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -48,6 +49,113 @@ const PeepLogo = () => (
   <View style={styles.logoContainer}>
     <Image source={require("../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
   </View>
+)
+
+const RouteCard = ({
+  route,
+  onExpand,
+  onToggleStar,
+  isStarred,
+}: {
+  route: any
+  onExpand: () => void
+  onToggleStar: () => void
+  isStarred: boolean
+}) => (
+  <TouchableOpacity onPress={onExpand} style={styles.routeCard}>
+    <View style={styles.routeHeader}>
+      <Text style={styles.routeName}>{route.routeName}</Text>
+      <View style={styles.routeHeaderRight}>
+        <View style={styles.fareContainer}>
+          <Text style={styles.fareText}>₱{route.fare}</Text>
+        </View>
+        <TouchableOpacity onPress={onToggleStar} style={styles.starButton}>
+          <Ionicons name={isStarred ? "star" : "star-outline"} size={20} color={isStarred ? "#F59E0B" : "#9CA3AF"} />
+        </TouchableOpacity>
+      </View>
+    </View>
+
+    <View style={styles.routeInfo}>
+      <View style={styles.timeInfo}>
+        <Ionicons name="time-outline" size={16} color="#6B7280" />
+        <Text style={styles.timeText}>{route.totalTime}</Text>
+      </View>
+    </View>
+
+    <View style={styles.stepsContainer}>
+      {route.steps.map((step: string, index: number) => (
+        <View key={index} style={styles.stepItem}>
+          <View style={styles.stepNumber}>
+            <Text style={styles.stepNumberText}>{index + 1}</Text>
+          </View>
+          <Text style={styles.stepText}>{step}</Text>
+        </View>
+      ))}
+    </View>
+  </TouchableOpacity>
+)
+
+const RouteDetailModal = ({
+  route,
+  visible,
+  onClose,
+  onToggleStar,
+  isStarred,
+}: {
+  route: any
+  visible: boolean
+  onClose: () => void
+  onToggleStar: () => void
+  isStarred: boolean
+}) => (
+  <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <SafeAreaView style={styles.modalContainer}>
+      <View style={styles.modalHeader}>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <Ionicons name="close" size={24} color="#374151" />
+        </TouchableOpacity>
+        <Text style={styles.modalTitle}>{route?.routeName}</Text>
+        <TouchableOpacity onPress={onToggleStar} style={styles.starButton}>
+          <Ionicons name={isStarred ? "star" : "star-outline"} size={24} color={isStarred ? "#F59E0B" : "#9CA3AF"} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.modalContent}>
+        {/* Detailed Map View */}
+        <View style={styles.detailMapContainer}>
+          <View style={styles.detailMapPlaceholder}>
+            <Ionicons name="map" size={64} color="#9CA3AF" />
+            <Text style={styles.detailMapText}>Detailed Route Map</Text>
+            <Text style={styles.detailMapSubtext}>Interactive route visualization</Text>
+          </View>
+        </View>
+
+        {/* Route Information */}
+        <View style={styles.routeDetailCard}>
+          <View style={styles.routeDetailHeader}>
+            <View style={styles.fareContainer}>
+              <Text style={styles.fareText}>₱{route?.fare}</Text>
+            </View>
+            <View style={styles.timeInfo}>
+              <Ionicons name="time-outline" size={16} color="#6B7280" />
+              <Text style={styles.timeText}>{route?.totalTime}</Text>
+            </View>
+          </View>
+
+          <View style={styles.stepsContainer}>
+            {route?.steps.map((step: string, index: number) => (
+              <View key={index} style={styles.stepItem}>
+                <View style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.stepText}>{step}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  </Modal>
 )
 
 export default function HomeScreen() {
@@ -154,8 +262,6 @@ Details: ${optimalRoute.routeDetails.join(", ")}
           style={styles.header}
         >
           <PeepLogo />
-          <Text style={styles.welcomeText}>Welcome to PEEP PEEP</Text>
-          <Text style={styles.subtitleText}>Your Davao City Jeepney Guide</Text>
         </LinearGradient>
 
         <View style={styles.mapSection}>
@@ -213,7 +319,7 @@ Details: ${optimalRoute.routeDetails.join(", ")}
 
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
-                <Ionicons name="location-outline" size={20} color="#E85A4F" style={styles.inputIcon} />
+                <Ionicons name="location-outline" size={20} color="#f59e0b" style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Where from?"
@@ -223,11 +329,6 @@ Details: ${optimalRoute.routeDetails.join(", ")}
                   onFocus={() => setShowFromSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowFromSuggestions(false), 200)}
                 />
-                {locationPermission && (
-                  <TouchableOpacity onPress={requestLocationPermission}>
-                    <Ionicons name="locate" size={20} color="#E85A4F" />
-                  </TouchableOpacity>
-                )}
               </View>
 
               {showFromSuggestions && (
@@ -246,7 +347,7 @@ Details: ${optimalRoute.routeDetails.join(", ")}
               )}
 
               <View style={styles.inputWrapper}>
-                <Ionicons name="navigate-outline" size={20} color="#D946EF" style={styles.inputIcon} />
+                <Ionicons name="navigate-outline" size={20} color="#ec4899" style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Where to?"
@@ -275,8 +376,11 @@ Details: ${optimalRoute.routeDetails.join(", ")}
 
               <TouchableOpacity
                 onPress={handleSearch}
-                disabled={!fromLocation || !toLocation}
-                style={[styles.searchButton, (!fromLocation || !toLocation) && styles.searchButtonDisabled]}
+                disabled={!fromLocation || !toLocation || isSearching}
+                style={[
+                  styles.searchButton,
+                  (!fromLocation || !toLocation || isSearching) && styles.searchButtonDisabled,
+                ]}
               >
                 <LinearGradient
                   colors={["#E85A4F", "#DC2626", "#B91C1C"]}
@@ -284,15 +388,25 @@ Details: ${optimalRoute.routeDetails.join(", ")}
                   end={{ x: 1, y: 0 }}
                   style={styles.searchButtonGradient}
                 >
-                  <Text style={styles.searchButtonText}>Find Routes</Text>
+                  <Text style={styles.searchButtonText}>{isSearching ? "Finding Routes..." : "See Routes"}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
+        {/* Bottom spacing for navigation */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Route Detail Modal */}
+      <RouteDetailModal
+        route={selectedRoute}
+        visible={showRouteDetail}
+        onClose={() => setShowRouteDetail(false)}
+        onToggleStar={() => selectedRoute && toggleStar(selectedRoute.id)}
+        isStarred={selectedRoute ? starredRoutes.includes(selectedRoute.id) : false}
+      />
     </SafeAreaView>
   )
 }
@@ -310,28 +424,15 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    alignItems: "center",
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 12,
+    marginTop: 16,
+    marginBottom: 6,
   },
   logoImage: {
     width: 200,
     height: 90,
-  },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  subtitleText: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    textAlign: "center",
-    opacity: 0.9,
   },
   mapSection: {
     paddingHorizontal: 16,
@@ -367,7 +468,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   plannerCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 16,
     padding: 24,
     shadowColor: "#000",
@@ -443,5 +544,100 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100,
+  },
+  bottomNav: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 12,
+    paddingBottom: 24,
+  },
+  navItem: {
+    alignItems: "center",
+    gap: 4,
+  },
+  navText: {
+    fontSize: 12,
+    color: "#374151",
+  },
+  navTextActive: {
+    color: "#F59E0B",
+    fontWeight: "600",
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#FEF7ED",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1F2937",
+    flex: 1,
+    textAlign: "center",
+  },
+  modalContent: {
+    flex: 1,
+  },
+  detailMapContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+  detailMapPlaceholder: {
+    height: 300,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailMapText: {
+    fontSize: 16,
+    color: "#6B7280",
+    marginTop: 12,
+    fontWeight: "500",
+  },
+  detailMapSubtext: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    marginTop: 4,
+  },
+  routeDetailCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  routeDetailHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  starButton: {
+    padding: 4,
   },
 })
