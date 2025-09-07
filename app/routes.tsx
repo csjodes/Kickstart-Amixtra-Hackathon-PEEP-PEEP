@@ -4,88 +4,8 @@ import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, TextInput } from "react-native"
-
-const DAVAO_ROUTES = [
-  {
-    id: 1,
-    routeNumber: "Route 1",
-    routeName: "Matina Aplaya - Downtown",
-    destinations: ["Matina Aplaya", "Matina Crossing", "SM City Davao", "Roxas Ave", "Downtown"],
-    fare: 15,
-    distance: "12 km",
-    estimatedTime: "25-30 mins",
-    landmarks: ["SM City Davao", "Matina Town Square", "Davao Doctors Hospital"],
-    alternateNames: ["Matina Route", "SM Route"],
-  },
-  {
-    id: 2,
-    routeNumber: "Route 2",
-    routeName: "Bangkal - Toril",
-    destinations: ["Bangkal", "Mintal", "Sirawan", "Toril"],
-    fare: 18,
-    distance: "15 km",
-    estimatedTime: "35-40 mins",
-    landmarks: ["Toril Public Market", "Sirawan Bridge", "Mintal Proper"],
-    alternateNames: ["Toril Route"],
-  },
-  {
-    id: 3,
-    routeNumber: "Route 3",
-    routeName: "Buhangin - Bankerohan",
-    destinations: ["Buhangin", "Agdao", "Bankerohan Terminal", "Downtown"],
-    fare: 15,
-    distance: "10 km",
-    estimatedTime: "20-25 mins",
-    landmarks: ["Bankerohan Public Market", "Agdao Bridge", "Buhangin Public Market"],
-    alternateNames: ["Bankerohan Route"],
-  },
-  {
-    id: 4,
-    routeNumber: "Route 4",
-    routeName: "Calinan - Downtown",
-    destinations: ["Calinan", "Baguio District", "Talomo", "Downtown"],
-    fare: 20,
-    distance: "18 km",
-    estimatedTime: "40-45 mins",
-    landmarks: ["Calinan Public Market", "Baguio District", "Talomo Bridge"],
-    alternateNames: ["Calinan Route"],
-  },
-  {
-    id: 5,
-    routeNumber: "Route 5A",
-    routeName: "Ecoland - SM City",
-    destinations: ["Ecoland", "Davao Coastal Road", "SM City Davao", "Ramon Magsaysay (Uyanguren)", "Downtown"],
-    fare: 15,
-    distance: "14 km",
-    estimatedTime: "30-35 mins",
-    landmarks: ["SM City Davao", "Ateneo de Davao", "Ramon Magsaysay Park"],
-    alternateNames: ["Ecoland Route", "SM Route"],
-    roadAliases: ["Ramon Magsaysay Ave (formerly Uyanguren St)"],
-  },
-  {
-    id: 6,
-    routeNumber: "Route 6",
-    routeName: "Panacan - Bankerohan",
-    destinations: ["Panacan", "Sasa", "Bankerohan Terminal"],
-    fare: 15,
-    distance: "8 km",
-    estimatedTime: "18-22 mins",
-    landmarks: ["Sasa Port", "Panacan Bridge"],
-    alternateNames: ["Panacan Route", "Sasa Route"],
-  },
-  {
-    id: 7,
-    routeNumber: "Route 10B",
-    routeName: "Catalunan Grande - Downtown",
-    destinations: ["Catalunan Grande", "Catalunan Pequeño", "Shrine Hills", "Downtown"],
-    fare: 18,
-    distance: "16 km",
-    estimatedTime: "35-40 mins",
-    landmarks: ["Shrine Hills", "Jack's Ridge"],
-    alternateNames: ["Catalunan Route"],
-  },
-]
+import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { DAVAO_ROUTES_DATA } from "../utils/routeAlgorithm"
 
 const RouteDetailModal = ({
   route,
@@ -109,16 +29,6 @@ const RouteDetailModal = ({
       </View>
 
       <ScrollView style={styles.modalContent}>
-        {/* Interactive Map */}
-        <View style={styles.detailMapContainer}>
-          <View style={styles.detailMapPlaceholder}>
-            <Ionicons name="map" size={64} color="#E85A4F" />
-            <Text style={styles.detailMapText}>Interactive Route Map</Text>
-            <Text style={styles.detailMapSubtext}>Detailed route visualization with stops</Text>
-          </View>
-        </View>
-
-        {/* Route Information */}
         <View style={styles.routeInfoCard}>
           <View style={styles.routeStats}>
             <View style={styles.statItem}>
@@ -150,6 +60,18 @@ const RouteDetailModal = ({
             ))}
           </View>
 
+          {route?.streets && (
+            <View style={styles.streetsSection}>
+              <Text style={styles.sectionTitle}>Streets & Roads</Text>
+              {route.streets.map((street: string, index: number) => (
+                <View key={index} style={styles.streetItem}>
+                  <Ionicons name="trail-sign" size={16} color="#E85A4F" />
+                  <Text style={styles.streetText}>{street}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
           {route?.landmarks && (
             <View style={styles.landmarksSection}>
               <Text style={styles.sectionTitle}>Key Landmarks</Text>
@@ -158,17 +80,6 @@ const RouteDetailModal = ({
                   <Ionicons name="location" size={16} color="#E85A4F" />
                   <Text style={styles.landmarkText}>{landmark}</Text>
                 </View>
-              ))}
-            </View>
-          )}
-
-          {route?.roadAliases && (
-            <View style={styles.aliasSection}>
-              <Text style={styles.sectionTitle}>Road Name Information</Text>
-              {route.roadAliases.map((alias: string, index: number) => (
-                <Text key={index} style={styles.aliasText}>
-                  {alias}
-                </Text>
               ))}
             </View>
           )}
@@ -182,14 +93,14 @@ export default function RoutesScreen() {
   const [selectedRoute, setSelectedRoute] = useState<any>(null)
   const [showRouteDetail, setShowRouteDetail] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [filteredRoutes, setFilteredRoutes] = useState(DAVAO_ROUTES)
+  const [filteredRoutes, setFilteredRoutes] = useState(DAVAO_ROUTES_DATA)
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
     if (query.trim() === "") {
-      setFilteredRoutes(DAVAO_ROUTES)
+      setFilteredRoutes(DAVAO_ROUTES_DATA)
     } else {
-      const filtered = DAVAO_ROUTES.filter(
+      const filtered = DAVAO_ROUTES_DATA.filter(
         (route) =>
           route.routeName.toLowerCase().includes(query.toLowerCase()) ||
           route.routeNumber.toLowerCase().includes(query.toLowerCase()) ||
@@ -208,18 +119,16 @@ export default function RoutesScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Header */}
       <LinearGradient
-        colors={["#FED7AA", "#FDBA74", "#FB923C", "#F97316"]}
+        colors={["#1E293B", "#334155", "#475569"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
         <Text style={styles.headerTitle}>Jeepney Routes</Text>
-        <Text style={styles.headerSubtitle}>Davao City Public Transportation</Text>
+        <Text style={styles.headerSubtitle}>5 Main Davao City Routes</Text>
       </LinearGradient>
 
-      {/* Search Bar */}
       <View style={styles.searchSection}>
         <View style={styles.searchWrapper}>
           <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.searchIcon} />
@@ -233,7 +142,6 @@ export default function RoutesScreen() {
         </View>
       </View>
 
-      {/* Routes List */}
       <ScrollView style={styles.routesList} showsVerticalScrollIndicator={false}>
         <View style={styles.routesGrid}>
           {filteredRoutes.map((route) => (
@@ -395,7 +303,6 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 100,
   },
-  // Modal styles
   modalContainer: {
     flex: 1,
     backgroundColor: "#FEF7ED",
@@ -423,37 +330,12 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
   },
-  detailMapContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  detailMapPlaceholder: {
-    height: 300,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#E5E7EB",
-  },
-  detailMapText: {
-    fontSize: 16,
-    color: "#374151",
-    marginTop: 12,
-    fontWeight: "600",
-  },
-  detailMapSubtext: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 4,
-    textAlign: "center",
-  },
   routeInfoCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginVertical: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -515,6 +397,19 @@ const styles = StyleSheet.create({
     color: "#374151",
     flex: 1,
   },
+  streetsSection: {
+    marginBottom: 24,
+  },
+  streetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+    gap: 8,
+  },
+  streetText: {
+    fontSize: 14,
+    color: "#374151",
+  },
   landmarksSection: {
     marginBottom: 24,
   },
@@ -527,14 +422,5 @@ const styles = StyleSheet.create({
   landmarkText: {
     fontSize: 14,
     color: "#374151",
-  },
-  aliasSection: {
-    marginBottom: 16,
-  },
-  aliasText: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontStyle: "italic",
-    marginBottom: 4,
   },
 })

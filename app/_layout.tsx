@@ -1,5 +1,5 @@
-import { Tabs } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
+import { Tabs } from "expo-router"
 
 export default function RootLayout() {
   return (
@@ -37,24 +37,10 @@ export default function RootLayout() {
         }}
       />
       <Tabs.Screen
-        name="starred"
-        options={{
-          title: "Starred",
-          tabBarIcon: ({ color, size }) => <Ionicons name="star" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="fares"
         options={{
           title: "Fares",
           tabBarIcon: ({ color, size }) => <Ionicons name="cash" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="auth"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}
       />
     </Tabs>

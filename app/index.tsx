@@ -2,9 +2,9 @@
 
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
-import { StatusBar } from "expo-status-bar"
-import { useState, useEffect } from "react"
 import * as Location from "expo-location"
+import { StatusBar } from "expo-status-bar"
+import { useEffect, useState } from "react"
 import {
   Alert,
   Image,
@@ -16,6 +16,33 @@ import {
   TouchableOpacity,
   View,
 } from "react-native"
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps"
+import { findOptimalRoute } from "../utils/routeAlgorithm"
+
+const DAVAO_LOCATIONS = [
+  { name: "Matina Aplaya", lat: 7.0731, lng: 125.6128 },
+  { name: "Agdao", lat: 7.0731, lng: 125.6128 },
+  { name: "Toril", lat: 7.0197, lng: 125.4953 },
+  { name: "Roxas Avenue", lat: 7.0731, lng: 125.6128 },
+  { name: "Mintal", lat: 7.0197, lng: 125.4953 },
+  { name: "Ulas", lat: 7.0731, lng: 125.6128 },
+  { name: "Magsaysay Avenue", lat: 7.0731, lng: 125.6128 },
+  { name: "Sasa", lat: 7.0731, lng: 125.6128 },
+  { name: "JP Laurel Avenue", lat: 7.0731, lng: 125.6128 },
+  { name: "SM City Davao", lat: 7.0969, lng: 125.6147 },
+  { name: "Bankerohan Market", lat: 7.0731, lng: 125.6128 },
+  { name: "Buhangin", lat: 7.1247, lng: 125.6481 },
+  { name: "Downtown Davao", lat: 7.0731, lng: 125.6128 },
+  { name: "Ecoland Terminal", lat: 7.1247, lng: 125.6481 },
+  { name: "NCCC Mall", lat: 7.0969, lng: 125.6147 },
+]
+
+const DAVAO_CENTER = {
+  latitude: 7.0731,
+  longitude: 125.6128,
+  latitudeDelta: 0.0922,
+  longitudeDelta: 0.0421,
+}
 
 const PeepLogo = () => (
   <View style={styles.logoContainer}>
@@ -28,6 +55,9 @@ export default function HomeScreen() {
   const [toLocation, setToLocation] = useState("")
   const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null)
   const [locationPermission, setLocationPermission] = useState<boolean>(false)
+  const [showFromSuggestions, setShowFromSuggestions] = useState(false)
+  const [showToSuggestions, setShowToSuggestions] = useState(false)
+  const [mapRegion, setMapRegion] = useState(DAVAO_CENTER)
 
   useEffect(() => {
     requestLocationPermission()
@@ -40,6 +70,16 @@ export default function HomeScreen() {
         setLocationPermission(true)
         const location = await Location.getCurrentPositionAsync({})
         setCurrentLocation(location)
+
+        // Update map region to user's location if within Davao area
+        const userRegion = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }
+        setMapRegion(userRegion)
+
         const address = await Location.reverseGeocodeAsync({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
@@ -55,22 +95,60 @@ export default function HomeScreen() {
     }
   }
 
+  const getFilteredSuggestions = (isFromField: boolean) => {
+    const selectedLocation = isFromField ? toLocation : fromLocation
+    return DAVAO_LOCATIONS.filter((location) => location.name !== selectedLocation)
+  }
+
+  const handleLocationSelect = (locationName: string, isFromField: boolean) => {
+    if (isFromField) {
+      setFromLocation(locationName)
+      setShowFromSuggestions(false)
+    } else {
+      setToLocation(locationName)
+      setShowToSuggestions(false)
+    }
+
+    // Center map on selected location
+    const selectedLoc = DAVAO_LOCATIONS.find((loc) => loc.name === locationName)
+    if (selectedLoc) {
+      setMapRegion({
+        latitude: selectedLoc.lat,
+        longitude: selectedLoc.lng,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      })
+    }
+  }
+
   const handleSearch = () => {
     if (!fromLocation || !toLocation) {
       Alert.alert("Missing Information", "Please enter both pickup and destination locations.")
       return
     }
-    // Navigate to routes page with search parameters
-    Alert.alert("Search", `Searching routes from ${fromLocation} to ${toLocation}`)
+
+    const optimalRoute = findOptimalRoute(fromLocation, toLocation, "time")
+
+    if (optimalRoute) {
+      const routeInfo = `
+Route Found: ${optimalRoute.path.join(" → ")}
+Distance: ${optimalRoute.totalDistance} km
+Fare: ₱${optimalRoute.totalFare}
+Time: ${optimalRoute.totalTime} minutes
+Details: ${optimalRoute.routeDetails.join(", ")}
+      `
+      Alert.alert("Optimal Route", routeInfo.trim())
+    } else {
+      Alert.alert("No Route Found", "No direct route available between these locations. Please check nearby terminals.")
+    }
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header with Logo - Softer gradient */}
         <LinearGradient
-          colors={["#FED7AA", "#FDBA74", "#FB923C", "#F97316"]}
+          colors={["#1E293B", "#334155", "#475569"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
@@ -80,46 +158,55 @@ export default function HomeScreen() {
           <Text style={styles.subtitleText}>Your Davao City Jeepney Guide</Text>
         </LinearGradient>
 
-        {/* Interactive Map Section */}
         <View style={styles.mapSection}>
-          <View style={styles.mapPlaceholder}>
-            <Ionicons name="location" size={48} color="#E85A4F" />
-            <Text style={styles.mapText}>Interactive Map</Text>
-            <Text style={styles.mapSubtext}>
-              {locationPermission ? "GPS Enabled - Davao City" : "Enable GPS for better experience"}
-            </Text>
-            {currentLocation && (
-              <Text style={styles.coordinatesText}>
-                {currentLocation.coords.latitude.toFixed(4)}, {currentLocation.coords.longitude.toFixed(4)}
+          <View style={styles.mapContainer}>
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              region={mapRegion}
+              onRegionChangeComplete={setMapRegion}
+              showsUserLocation={locationPermission}
+              showsMyLocationButton={true}
+              showsCompass={true}
+              showsScale={true}
+            >
+              {/* Current location marker */}
+              {currentLocation && (
+                <Marker
+                  coordinate={{
+                    latitude: currentLocation.coords.latitude,
+                    longitude: currentLocation.coords.longitude,
+                  }}
+                  title="Your Location"
+                  description="Current GPS position"
+                  pinColor="#E85A4F"
+                />
+              )}
+
+              {/* Davao location markers */}
+              {DAVAO_LOCATIONS.map((location, index) => (
+                <Marker
+                  key={index}
+                  coordinate={{
+                    latitude: location.lat,
+                    longitude: location.lng,
+                  }}
+                  title={location.name}
+                  description="Jeepney stop/terminal"
+                  pinColor="#FFA500"
+                />
+              ))}
+            </MapView>
+
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapOverlayText}>
+                {locationPermission ? "Interactive Map - Davao City" : "Enable GPS for live tracking"}
               </Text>
-            )}
+            </View>
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity style={styles.quickActionCard}>
-              <Ionicons name="map-outline" size={32} color="#E85A4F" />
-              <Text style={styles.quickActionText}>View All Routes</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionCard}>
-              <Ionicons name="star-outline" size={32} color="#E85A4F" />
-              <Text style={styles.quickActionText}>Saved Routes</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionCard}>
-              <Ionicons name="cash-outline" size={32} color="#E85A4F" />
-              <Text style={styles.quickActionText}>Fare Calculator</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionCard}>
-              <Ionicons name="chatbubble-outline" size={32} color="#E85A4F" />
-              <Text style={styles.quickActionText}>Ask AI Assistant</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Journey Planner */}
+        {/* Journey Planner - Main Focus */}
         <View style={styles.plannerSection}>
           <View style={styles.plannerCard}>
             <Text style={styles.plannerTitle}>Plan your journey</Text>
@@ -133,6 +220,8 @@ export default function HomeScreen() {
                   placeholderTextColor="#9CA3AF"
                   value={fromLocation}
                   onChangeText={setFromLocation}
+                  onFocus={() => setShowFromSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowFromSuggestions(false), 200)}
                 />
                 {locationPermission && (
                   <TouchableOpacity onPress={requestLocationPermission}>
@@ -140,6 +229,21 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 )}
               </View>
+
+              {showFromSuggestions && (
+                <View style={styles.suggestionsContainer}>
+                  {getFilteredSuggestions(true).map((location, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.suggestionItem}
+                      onPress={() => handleLocationSelect(location.name, true)}
+                    >
+                      <Ionicons name="location-outline" size={16} color="#6B7280" />
+                      <Text style={styles.suggestionText}>{location.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               <View style={styles.inputWrapper}>
                 <Ionicons name="navigate-outline" size={20} color="#D946EF" style={styles.inputIcon} />
@@ -149,8 +253,25 @@ export default function HomeScreen() {
                   placeholderTextColor="#9CA3AF"
                   value={toLocation}
                   onChangeText={setToLocation}
+                  onFocus={() => setShowToSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowToSuggestions(false), 200)}
                 />
               </View>
+
+              {showToSuggestions && (
+                <View style={styles.suggestionsContainer}>
+                  {getFilteredSuggestions(false).map((location, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.suggestionItem}
+                      onPress={() => handleLocationSelect(location.name, false)}
+                    >
+                      <Ionicons name="navigate-outline" size={16} color="#6B7280" />
+                      <Text style={styles.suggestionText}>{location.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               <TouchableOpacity
                 onPress={handleSearch}
@@ -158,7 +279,7 @@ export default function HomeScreen() {
                 style={[styles.searchButton, (!fromLocation || !toLocation) && styles.searchButtonDisabled]}
               >
                 <LinearGradient
-                  colors={["#FED7AA", "#FB923C", "#E85A4F"]}
+                  colors={["#E85A4F", "#DC2626", "#B91C1C"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.searchButtonGradient}
@@ -168,25 +289,6 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-
-        {/* Popular Routes */}
-        <View style={styles.popularSection}>
-          <Text style={styles.sectionTitle}>Popular Routes</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.popularScroll}>
-            <TouchableOpacity style={styles.popularCard}>
-              <Text style={styles.popularRoute}>Matina - SM City</Text>
-              <Text style={styles.popularFare}>₱15</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.popularCard}>
-              <Text style={styles.popularRoute}>Bankerohan - Buhangin</Text>
-              <Text style={styles.popularFare}>₱18</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.popularCard}>
-              <Text style={styles.popularRoute}>Toril - Downtown</Text>
-              <Text style={styles.popularFare}>₱20</Text>
-            </TouchableOpacity>
-          </ScrollView>
         </View>
 
         <View style={styles.bottomSpacing} />
@@ -205,7 +307,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 17,
-    paddingVertical: 20,
+    paddingVertical: 30,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     alignItems: "center",
@@ -235,66 +337,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 24,
   },
-  mapPlaceholder: {
-    height: 200,
-    backgroundColor: "#F3F4F6",
+  mapContainer: {
+    height: 300,
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#E5E7EB",
+    overflow: "hidden",
+    position: "relative",
   },
-  mapText: {
-    fontSize: 16,
+  map: {
+    flex: 1,
+  },
+  mapOverlay: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  mapOverlayText: {
+    fontSize: 14,
     color: "#374151",
-    marginTop: 8,
     fontWeight: "600",
-  },
-  mapSubtext: {
-    fontSize: 12,
-    color: "#6B7280",
     textAlign: "center",
-    marginTop: 4,
-  },
-  coordinatesText: {
-    fontSize: 10,
-    color: "#9CA3AF",
-    marginTop: 4,
-  },
-  quickActionsSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 16,
-  },
-  quickActionsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  quickActionCard: {
-    width: "48%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  quickActionText: {
-    fontSize: 12,
-    color: "#374151",
-    textAlign: "center",
-    marginTop: 8,
-    fontWeight: "500",
   },
   plannerSection: {
     paddingHorizontal: 16,
@@ -311,11 +377,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   plannerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "600",
     color: "#1F2937",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputContainer: {
     gap: 16,
@@ -338,6 +404,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#1F2937",
   },
+  suggestionsContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    maxHeight: 200,
+    marginTop: -8,
+  },
+  suggestionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: "#374151",
+    marginLeft: 8,
+  },
   searchButton: {
     borderRadius: 12,
     overflow: "hidden",
@@ -353,36 +440,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
-  },
-  popularSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  popularScroll: {
-    flexDirection: "row",
-  },
-  popularCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginRight: 12,
-    minWidth: 140,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  popularRoute: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 4,
-  },
-  popularFare: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#E85A4F",
   },
   bottomSpacing: {
     height: 100,
