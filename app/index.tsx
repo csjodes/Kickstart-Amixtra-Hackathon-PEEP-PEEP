@@ -166,6 +166,19 @@ export default function HomeScreen() {
   const [showFromSuggestions, setShowFromSuggestions] = useState(false)
   const [showToSuggestions, setShowToSuggestions] = useState(false)
   const [mapRegion, setMapRegion] = useState(DAVAO_CENTER)
+  const [isSearching] = useState(false)
+
+  // Add missing state variables for route details and starred routes
+  const [selectedRoute] = useState<any | null>(null)
+  const [showRouteDetail, setShowRouteDetail] = useState(false)
+  const [starredRoutes, setStarredRoutes] = useState<string[]>([])
+
+  // Example toggleStar function
+  const toggleStar = (routeId: string) => {
+    setStarredRoutes((prev) =>
+      prev.includes(routeId) ? prev.filter((id) => id !== routeId) : [...prev, routeId]
+    )
+  }
 
   useEffect(() => {
     requestLocationPermission()
@@ -639,5 +652,85 @@ const styles = StyleSheet.create({
   },
   starButton: {
     padding: 4,
+  },
+  routeCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  routeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  routeHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  routeName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+  },
+  fareContainer: {
+    backgroundColor: "#FFF7ED",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginRight: 8,
+  },
+  fareText: {
+    fontSize: 14,
+    color: "#F59E0B",
+    fontWeight: "600",
+  },
+  routeInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  timeInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  timeText: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginLeft: 4,
+  },
+  stepsContainer: {
+    marginTop: 8,
+  },
+  stepItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  stepNumber: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#F59E0B",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  stepNumberText: {
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  stepText: {
+    fontSize: 14,
+    color: "#374151",
   },
 })
